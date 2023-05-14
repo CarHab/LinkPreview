@@ -1,0 +1,68 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<PageTitle>Link Preview</PageTitle>
+
+<div class="container mt-5">
+    <h1 class="jumbotron">Link Preview</h1>
+    <p>Give us a link and we'll show you what it is before you open it.</p>
+    <EditForm Model="@LinkModel" OnSubmit="RunPreview" class="d-flex flex-row justify-content-center">
+        <InputText @bind-Value="@LinkModel.Link" class="form-control me-2" type="text" placeholder="link" />
+        <button type="submit" class="btn btn-primary">Preview</button>
+    </EditForm>
+
+    <div class="row mt-5">
+        @if (_loading)
+        {
+            <p>Loading...</p>
+        }
+        @if (_results is not null && _results.Count > 0)
+        {
+            <div class="d-flex flex-row flex-wrap">
+                @foreach (var item in _results)
+                {
+                    <div class="card m-2" style="width: 18rem;">
+                        @if (item!.image is not null)
+                        {
+                            <img src="@item.image" class="card-img-top" alt="preview image" style="max-width: 286px">
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@item.title</h5>
+                            <p class="card-text">@item.description</p>
+                            <a href="@item.url" class="btn btn-primary" target="_blank">Go to site</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    public Request LinkModel { get; set; } = new();
+    private List<Response?> _results { get; set; } = new();
+    private readonly string baseUrl = "https://api.linkpreview.net/?key=89978c343fabfd5cb72e38a7b39a3e48";
+    private bool _loading = false;
+
+    public async Task RunPreview()
+    {
+        _loading = true;
+        var result = await Http.GetAsync($"{baseUrl}&q={LinkModel.Link}");
+        var parsedResponse = await result.Content.ReadFromJsonAsync<Response>();
+        _results.Insert(0, parsedResponse);
+        _loading = false;
+    }
+
+    public class Response
+    {
+        public string title { get; set; } = "";
+        public string description { get; set; } = "";
+        public string image { get; set; } = "";
+        public string url { get; set; } = "";
+    }
+
+    public class Request
+    {
+        public string Link { get; set; } = "";
+    }
+}
